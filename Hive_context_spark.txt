@@ -1,0 +1,79 @@
+
+spark context :
+
+prior to Spark 2.0.0 spark context was used as  access all spark functioanlity.
+
+spark driver  program can use spark context to connect the cluster through resource manager.
+
+Sparkconf is require to create the spark context object which store configuration parameter 
+appname ( to identify your spark driver)
+application
+number of core
+memory size of executor running on workernode
+
+Ex:
+
+val conf = new SparkConf().setAppName(“RetailDataAnalysis”).setMaster(“spark://master:7077”).set(“spark.executor.memory”, “2g”)
+
+creation of sparkContext:
+val sc = new SparkContext(conf)
+
+
+Spark session :
+
+Spark 2.0.0 onwards, it is better to use sparkSession as it provides access to all the spark Functionalities that sparkContext does. Also, it provides APIs to work on DataFrames and Datasets.
+
+
+Creating Spark session:
+val spark = SparkSession
+.builder
+.appName("WorldBankIndex")
+.getOrCreate()
+
+Configuring properties:
+spark.conf.set("spark.sql.shuffle.partitions", 6)
+spark.conf.set("spark.executor.memory", "2g")
+
+
+
+
+
+
+
+
+
+
+
+
+Hive can use spark as execution engine. By default Hive use MR as execution engine.
+SET hive.execution.engine=spark;
+
+
+There are two ways to create context in Spark SQL:
+SqlContext:
+
+scala> import org.apache.spark.sql._
+scala> var sqlContext = new SQLContext(sc)
+HiveContext:
+
+scala> import org.apache.spark.sql.hive._
+scala> val hc = new HiveContext(sc)
+
+
+you should always use HiveContext. HiveContext is a superset of SqlContext, so it can do what SQLContext can do and much more. You do not have to connect to Hive to use HiveContext.
+
+
+
+import org.apache.spark.sql.hive.HiveContext
+val hiveContext = new org.apache.spark.sql.hive.HiveContext(sc)
+import hiveContext._
+
+val hive_tables=hiveContext.sql("show tables").foreach(println)
+
+val first_5_rows = hiveContext.sql("select * from olympics limit 5").foreach(println)
+
+
+val create_table = hiveContext.sql("create table spark_olympic(athelete STRING,age INT,country STRING,year STRING,closing STRING,sport STRING,gold INT,silver INT,bronze INT,total INT) row format delimited fields terminated by '\t' stored as textfile")
+
+
+val load_data = hiveContext.sql("load data local inpath '/home/kiran/Desktop/olympix_data.csv' into table spark_olympic")

@@ -1,0 +1,19 @@
+Shift + insert --> copy from outside/inside to terminal
+Ctrl+ insert -->Copy  with in terminal 
+ctrl +L --> clear screen
+
+setup variable globally 
+sudo gedit  /etc/profile  --> close and restart
+./etc/profile 
+
+core-site.xml --> need to identity the FS Shell (interface bw user and HDFS) path 
+
+Hdfs Command
+
+JPS --> return all the java program runnig
+
+Start java program 
+
+RM --> remove  ( hadoop fs -rm filename)
+file:/// --> list of all the files and root ( hadoop fs -ls file:///) 
+file:///home --> list out home directory 
