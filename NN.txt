@@ -1,0 +1,5 @@
+perceptron- basic forming unit of a neural network and it takes multiple inputs and produces one output
+perceptron is the simplest form of feedforward neural network. Perceptron networks uses a rule known as the perceptron rule as the  learning algorithm. In this, the weights and biases of  the neurons are trained to produce correct targets when corresponding  inputs are entered
+
+Hiddenlayer --> choose
+2/3 inputnode+outputnode

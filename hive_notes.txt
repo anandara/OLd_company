@@ -1,0 +1,156 @@
+Hive :
+data warehouse tool, not DB.
+
+Hive Architecture:
+hive install on top of hadoop,case insensitive
+Component : 
+Shell (CLI,bellineCLI) --> Access Hive (UI)  run DDL, DML Command
+thrift service-->API Interface execute hive Query lanaguage ( jdbc /odbc connection established from external world ( BI tool))
+metastore --> meta data of Table,schema, partition,file format,types of column,location of table
+ (default datbase- Derby (doesnt suport concurrency (multiuser)) any JDBC can use for store the Metadata for support concurrency
+driver -->from thrift service  receiving Query and create Session and create statitics and no.of output row, convert the query to Map reduce program
+
+--compiler -->  compile the input (parse query,abstract,syntax), generate execution plan
+--Optimizer--> optimize required compution
+--Execution Engine --> create the physical plan and execute Map reduce job (DAG of stage )
+support engine --> MR,TEZ,Spark ( set hive.execution.engine =tez)
+
+
+query engine translate into map reduce job and run into hadoop cluster
+
+- HUE
+- HDInsight
+
+Table :
+Inner ( schema +data get drop ),external(schema get drop)
+
+1. insert into  --> append
+2.insert overwrite --> existing record replace with new records
+
+
+File type :
+
+Parquet :
+use ful for tree kind of data  ( nested data)
+no acid support
+industry support ( most of the ppl using)
+
+
+ORC :
+
+store min & max of partition 
+Bloomfilter --> quickly check records exists 
+acid support  
+compression ratio efficent is more 
+
+
+partition:
+--------
+Table is HDFS directory , partition are sub directory in Table directory
+adv:no need scan all the data
+by defualt every table is inner,non-partition
+partition are  not created while crating the table where as will create only  load the data 
+
+1.create hive table
+2.load the data into hive table
+3.create partition table
+4.load data into partition table from hive table
+
+
+
+
+create table epart(id int,name string, sal int,sex  string,dno int) partitioned by ( s string) -- we cant give sex in both table creation and partition
+insert overwrite table epart partition( s='f')  select * from empl where sex='F'
+insert overwrite table epart partition( s='m')  select * from empl where sex='m'
+
+hdfsdirectory(single): user/hive/warehouse/tablename/partition/
+hdfsdirectory(multiple): user/hive/warehouse/tablename/partition1/partition2/
+
+
+Table to table to copy is done , file will be created as --> 000000_0
+if you want to access partition need to use partition column - select subset of data easy and fast manner
+each data group create seperate partition
+
+Hive join 
+
+1, divide dataset are read by individual mapper 
+2, each mapper emit the key, value pair  key will be join key column, value will be entire emited records , shuffle phase will sort the records by key and each key will be assigned to reducer
+3, each key will be assign to each reducer, in case of multiple reducer records from each key send by reducer 
+4, records from all tables except last table in the join loaded in memory on the reducer 
+5,last table in the join clause will be streamed to the reducer 
+6,reducer will cross the records from two data set  and apply join condition and derive the result set
+
+
+
+- inner (oly matching rows between joins)
+- outer
+--left outer join ( matching and nonmatching of left side )
+--right outer join ( matching and nonmatching of right side )
+--full outer join (matching + non matching of left + non matching of right)
+
+
+
+Hive Map join / map side join  :
+------------------------------
+Hive Map Join is also known as Auto Map Join, or Map Side Join, or Broadcast Join. 
+
+for a join with big table A and small table B, for every mapper for table A, Table B is read completely. Since the smaller table is loaded into memory at first. Afterward, join is performed in the map phase of the MapReduce job, no reducer is needed and reduce phase is skipped.
+
+
+parameter:
+hive.auto.convert.join-
+option set true, by default. Moreover, when a table with a size less than 25 MB  (hive.mapjoin.smalltable.filesize) is found
+
+Hive.auto.convert.join.noconditionaltask:
+three or more tables involve in the join condition. Hive generates three or more map-side joins with an assumption that all tables are of smaller size by using hive.auto.convert.join. Moreover, we can combine three or more map-side joins into a single map-side join if the size of the n-1 table is less than 10 MB using hive.auto.convert.join.noconditionaltask. Basically, this rule define by hive.auto.convert.join.noconditionaltask.size
+
+limitaion :
+we can never convert Full outer joins to map-side joins
+ it is possible to convert a left-outer join to a map-side join in the Hive. However, only possible since the right table that is to the right side of the join conditions, is lesser than 25 MB in size.
+we can convert a right-outer join to a map-side join in the Hive. Similarly, only possible if the left table size is lesser than 25 MB
+
+Select /*+ MAPJOIN(b) */ a.key, a.value from a join b on a.key = b.key
+
+using EXPLAIN command - identify the MAP join
+
+Bucket Map join :
+------------------
+
+the tables are large and all the tables used in the join are bucketed on the join columns we use Hive Bucket Map Join 
+if one table has 2 buckets then the other table must have either 2 buckets or a multiple of 2 buckets (2, 4, 6, and so on). 
+
+Use Case :
+all the tables are large
+while all tables bucketed using the join columns
+while the number of buckets in one table is a multiple of the number of buckets in the other table
+when all the tables do not sort
+
+parameter :
+set hive.enforce.bucketing = true; 
+set hive.optimize.bucketmapjoin=true;
+
+
+
+json :  ( loading Json file to hive table)
+-----------------------------------------------
+1. normally need to conver the json file into horzontal shape tag instead of vertical
+Ex:{"name":ravi,"age":25}
+2.create table with entire line consider as single column with string as data type
+ex:create table raw(line string)
+3.To retrive the data from column using udf function
+get_json_object  --> to get particular fields
+select get_json_object(line,'$name') ,get_json_object(line,'$age') frow raw
+4. To retrive the data from column using UDtf type
+join_tuple() --> to get continous sequence of fields
+select x.* from raw lateral view json_tuple(line,'name','age')x as n,a,c
+5.json file contain vertical tag with nested structure ( need to convert vertical tage to horizontal using mapreduce or spark)
+{ "name": "ravi",
+  "age" : "25",
+  "wife" : {"name" :"rani","age":23"}
+}
+create multiple level of table and fetch the record by applying get_json_object
+	
+
+
+
+

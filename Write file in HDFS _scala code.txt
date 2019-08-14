@@ -1,0 +1,32 @@
+import org.apache.hadoop.fs._
+import org.apache.log4j._
+
+object Writelogs {
+  val logg = Logger.getLogger("Writelogs")
+
+  def logging_toHDFS(log_path: String, msg: String, sc: org.apache.spark.SparkContext) = {
+
+    val path = new Path(log_path)
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+
+    val inpath = new Path(log_path)
+    val inpathExists = fs.exists(inpath)
+    logg.info("Path exists in HDFS " + log_path )
+
+   /* if (!inpathExists) {
+      logg.info("Invalid Input Path")
+      return
+    }*/
+
+    var outStreamLog = fs.create(path)
+    logg.info("Path successfully created in HDFS")
+    //an object of FSDataOutputSream is created which will be used afterwards to write the log content.
+
+    logg.info("Starting Logging in HDFS")
+    outStreamLog.writeUTF(msg)
+    //write method of the FSDataOutputStream is invoked and the string parameter is passed which is used to write in UTF-8 encoding;
+
+    outStreamLog.close()
+    //the output stream object is closed;
+  }
+}

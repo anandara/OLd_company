@@ -1,0 +1,70 @@
+Impala server is a distributed, massively parallel processing (MPP) database engine consist of below component
+
+1)Impala Damen :
+ physically represented by the impalad process. and doing below key functions:
+Read and writ to data files
+Accept queries transmitted from impala-shell command, hue,jdbc,odbc
+parallelize the quries and distribute work across cluster
+Transmit intermediate query result back to central coordinator
+ImpalaD constant communication with Statestore to confirm which damenon are healthy and can accept new work
+They also receive broadcast messages from catalogd whennever any impala daemon in the cluster creates, alters or drops any type of object  or insert or load data statement is procesed through impala
+we can control which hosts act as query coordinator and which act as query executor to improve scalablity for highly concurrent workloads on large cluster
+
+2)Impala Statestore:
+
+health check for all the impala damaen in the cluster and physically represented by a daemon process named statestored
+If an Impala daemon goes offline due to hardware failure, network error, software issue, or other reason, the StateStore informs all the other Impala daemons so that future queries can avoid making requests to the unreachable Impala daemon.
+If the StateStore is not running or becomes unreachable, the Impala daemons continue running and distributing work among themselves as usual
+statestored and catalogd daemons do not have special requirements for high availability because problems with those daemons do not result in data loss. If those daemons become unavailable due to an outage on a particular host, you can stop the Impala service, delete the Impala StateStore and Impala Catalog Server roles, add the roles on a different host, and restart the Impala service
+
+
+3)Impala Catalog service:
+
+It is physically represented by a daemon process named catalogd
+It distributes metadata (table names, column names, types, etc.) to Impala daemons via the state stored
+
+normally when you have create table in hive so you need to run below commands to refelect the table in impala 
+
+REFRESH 'Table name' --> if you know table name got created through Hive you can run the query in the hue and refresh so that we can see the table data 
+INVALIDATE METADATA 'Tablename' --> entire database will get refresh since this costly operation we cant do often
+COMPUTE INCREMENTAL STATS  'Tablename' --> some time hive table with partition will not show even after running the invalidate metadata so you have to run the query to get partition also 
+
+
+Impala working:
+Step-1: When client sends a request to ImpalaD. ImpalaD will accept that request
+
+Step-2: Now impalaD will fetches metadata from Hive metastore and HDFS NN
+
+Step-3: Now ImpalaD will fetches state of other ImpalaD’s in which data is exist from Statestore
+
+Step-4: Thus all the ImpalaD’s will start execution of query which is received from client.
+
+Step-5: ImpalaD has 3 components
+
+Query Planner: 
+Planner is responsible for parsing out the query. The planning happens in 2 parts. First, a single node plan is made, as if all the data in the cluster resided on just one node, and secondly, this single node plan is converted to a distributed plan based on the location of various data sources in the cluster (thereby leveraging data locality).
+
+Query Coordinator:
+Coordinator is responsible for coordinating the execution of the entire query. In particular, it sends requests to various executors to read and process data. It then receives the data back from these executors and streams it back to the client via JDBC/ODBC.
+
+Query Executor:  
+Executor is responsible for reading the data from HDFS/HBase and/or doing aggregations on data (which is read locally or if not available locally could be streamed from executors of other Impala daemons).
+
+Other important points:
+ImpalaD’s caches the metadata for fast access.
+Impala will be best fit for parquet format(columnar oriented format)
+Impala will use OS cache.
+128 GB RAM is recommended in each node.(Cloudera recommended)
+Scales well up to 100s of users in small cluster
+In Impala we can create tables or we can use tables in the hive
+Load Test
+No of threads created by impalaD = 2 or 3x no of cores
+Intermediate results stored in In-memory.
+Joins
+Largest table should be listed first in the FROM clause of a query.
+Default join in impala is BROADCAST Join. (A and B are two tables. Table A is big, so data in B is broadcast-ed to A).
+Broadcast join best fit for one big table and many small tables.
+BROADCAST join is not good for two large tables because large data cannot be stored in in-memory.
+For two large tables we have to use PARTITIONED join.
+
+

@@ -1,0 +1,25 @@
+
+
+delete the  records from first value 
+cancer_data = np.delete(arr = cancer_data, obj= 0, axis = 1)  # Removing the First value from array
+
+convert multi dimensional to onedimensional array
+y_train = y_train.ravel()  # convert to one dimensional array
+
+
+fillna with mean of each column:
+for i in df.columns:
+    df[i] = df[i].fillna(np.mean(df[i]))
+
+
+# create dictionary with {1:[20,40],2:[30,50)}
+k = 3
+# centroids[i] = [x, y]
+centroids = {
+    i+1: [np.random.randint(0, 80), np.random.randint(0, 80)]
+    for i in range(k)
+}
+
+# compare the all three column and give minimum value by row level
+centroid_distance_cols = ['distance_from_{}'.format(i) for i in centroids.keys()]
+df.loc[:, centroid_distance_cols].idxmin(axis=1)

@@ -1,0 +1,192 @@
+Tunning Apache Hive in CDH
+
+keep the number of columns under 1,000
+Limit column width
+they do not access large numbers of Hive table partitions
+
+when we have outof memory error -->Java heap size for HiveServer2 ( no.of connection hitting it)
+if 2- 10 connection cloudera recommend 4-10 GB
+
+ Number of Concurrent Connections Affect HiveServer2 Performance
+
+High numbers of concurrent queries increases the connection count. Each query connection consumes resources for the query plan, number of table partitions accessed, and partial result sets. Limiting the number of concurrent users can help reduce overall HS2 resource consumption, especially limiting scenarios where one or more "in-flight" queries returns large result sets.
+
+Resolve :
+Load-balance workloads across multiple HS2 instances by using HS2 load balancing, which is available in CDH 5.7 and later
+
+Many abandoned Hue sessions:
+
+Try to close unuse hue browser since all of the open connection lead to multiple operation lead to resource crisis
+
+below url will choose right choice
+
+Resolve :
+hive.server2.idle.operation.timeout=7200000
+
+
+Queries access large no. of  table partitions:
+
+single query should not access more than 1000  tablepartition
+this can create memory pressure
+
+hive.metastore.limit.partition.request = 1000
+https://optimizer.cloudera.com/
+
+
+http://spark.apache.org/docs/2.3.0/api/python/pyspark.sql.html#pyspark.sql.DataFrame
+
+
+
+Hive optimization :
+
+1. USe TEZ execution engine instead of MR but cloudera will not support TEZ engine only support by hortonworks 
+2.suitable file format --> ORC(optimized row columnar) stored file format with optimized way, it reduce orginal data up to 75 %.it contains row data in groups such as strips along with file footer.
+3.Hive partitioning --> while we fetch the value from table, only required partitions of table are queried
+4.Bucketing in hive --> after partitioning on particular field remains huge, still we want to manage the partition result into differnet parts
+5.vectorization in hive --> query executuion operations refers to scan, aggrgration,filter and joins performing them in batches of 1024 rows at once instead of single row each time
+set hive.vectorized.execution = true
+set hive.vectorized.execution.enabled = true
+6.Hive index -Hive Index is maintained in a separate table. Hence, it won’t affect the data inside the table, which contains the data. There is one more advantage of it. That is for indexing in Hive is that index can also be partitioned depending on the size of the data we have
+Hive Index types:
+Compact Indexing in Hive
+Bitmap Indexing in Hive
+
+Improving Hive Data Storage and Query Performance
+
+ORC feature :
+Break file into sets of rows called stripe
+	1.default stripe size is 256 MB
+	2.large size enables efficent read of columns
+Footer :
+	1. contains list of stripe locations
+	2.self-describing types
+	3.count , min, max and sum for each column
+
+ Postscript:
+	1.contains compression parameters
+	2.size of compressed footer
+ 
+Stripe structure :
+
+Data - Composed of multiple streams per column
+
+index - required for skipping rows and default to every 10,000 rows 1.postition in each stream 2. min and max for each column
+
+footer - directory of stream locations , encoding of each column
+
+compression -
+
+light weight compression
+
+ 1. type specific ( int,string,timestamp, etc..)
+ 2. always enabled
+ 3. focus on being very inexpensive
+
+genric compression 
+
+support for none,snappy,LZO and zlib
+entire focus uses the same compression
+applied each stream and footer
+applied after light weight compression
+
+
+
+Query hint :
+
+Join queries involving large tables, where intermediate result sets are transmitted across the network to evaluate the join conditions.
+Inserting into partitioned Parquet tables, where many memory buffers could be allocated on each host to hold intermediate results for each partition.
+ 
+SELECT STRAIGHT_JOIN select_list FROM
+join_left_hand_table
+  JOIN [{BROADCAST|SHUFFLE}]   --> Query hint 
+join_right_hand_table
+remainder_of_query;
+
+INSERT insert_clauses
+  [{SHUFFLE|NOSHUFFLE}]
+  SELECT remainder_of_query;
+
+SELECT select_list FROM
+table_ref
+  /* +{SCHEDULE_CACHE_LOCAL | SCHEDULE_DISK_LOCAL | SCHEDULE_REMOTE}
+    [,RANDOM_REPLICA] */
+remainder_of_query;
+
+Query hint : 
+
+/* + */
+-- 
+[]
+
+[SHUFFLE] (partitioned join) --> partitioned joins are more efficient for joins between large tables of similar size. ,which divides up corresponding rows from both tables using a hashing algorithm, sending subsets of the rows to other nodes for processing
+[BROADCAST] --> broadcast joins are more efficient in cases where one table is much smaller than the other. (Put the smaller table on the right side of the JOIN operator
+STRAIGHT_JOIN --> ensures that joins are processed in a predictable order from left to right
+
+ex: select straight_join t1.name, t2.id, t3.price
+  from t1 join [shuffle] t2 join [broadcast] t3
+  on t1.id = t2.id and t2.id = t3.id;
+
+
+please refer below link for understand the query execution plan
+https://www.ericlin.me/2019/04/impala-query-profile-explained-part-2/
+
+combiner will run on mapper side and leverage data locality
+significant improvement in the performence
+when to use :
+aggreagation usecase ( if its addititive) [ count, average,sum]
+-Dmapreduce.job.combine.class
+-------------------------------------------------
+			compression - 
+------------------------------------------------
+storagewise & process wise give better 
+
+storage :
+----------
+ 2 type --  uncompressed, splitable  & non -splitable
+
+storagewise nonsplitable is best one among others 
+
+ex: input file 2 gb 
+
+Uncompressed
+-----------
+filesize --2 gb
+17 blocks ( each hold 128 mb)
+
+
+splitable :
+---------
+compression ratio will low compare to non splitable 
+ex:bzip2,
+
+non splitable :
+---------------
+ 8X compression,filesize -->256 MB  &  
+
+processing:
+--------------
+NonSplitable Compression ratio will be higher but processing will be single thread it may cause significant impact on performence for large data 
+best praticise is to reduce file size which is closed to block size so that will maintain data locality for processing the data
+if you dont handle compression properly your cluster will be underutlize and job will very slow  so data will be compressed and leverage resource completely when application running
+example , split the actual file into multiple chunks after that zip the file so that efficently compute the application
+if you have large file with non splitable compression processing time will take more since its using single thread for mapper 
+
+
+
+ Type	Uncompresion	Splitable		Nonsplitable
+Filesize 2GB		512 MB			256MB
+blocksize 128MB		128 MB			128MB
+splitsize 128MB		128MB			128MB
+no.ofblocks 17		4			2
+no.of.mapper 17		4			1	
+
+
+
+ 
+
+
+
+
+
+
+

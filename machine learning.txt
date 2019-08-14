@@ -1,0 +1,15 @@
+#interpolate by placing mean values using sci-kit learn
+from sklearn.preprocessing import Imputer
+imr = Imputer(missing_values='NaN', strategy='mean', axis=0)
+imr = imr.fit(df)
+imputed_data = imr.transform(data_frame.values)
+
+
+
+  After the textual values are encoded to numerical values, we will see some values which will be greater than the other values. Higher values imply they have higher importance. This can lead to our models treating features differently. As an instance, Fashion news type might get a value of 1 and Economical news type might get a value of 10. This makes the machine learning model assume that Economical news type has more importance than Fashion news type
+
+Solution: We can solve this by using One-Hot Encoding
+
+Tips:Always One Hot Encode After Encoding Textual Values To Prevent Ordering
+
+Range of values in a feature should reflect their importance.Higher values imply higher importance

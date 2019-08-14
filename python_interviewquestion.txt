@@ -1,0 +1,2 @@
+pylint,pychecker - find the bug in the code 
+monkey patching - programmer to modify or extend code at runtime

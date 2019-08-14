@@ -1,0 +1,15 @@
+random variable
+- probablity distribution
+Random variables are most often used in conjunction with a probability of a random event happening
+
+	- continous 
+
+	
+
+	- Discreate
+		Counts ( No.of event will occur if we are rolling coin)
+		head - 1/2
+		tail - 1/2
+
+
+

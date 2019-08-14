@@ -1,0 +1,20 @@
+https://www.machinelearningplus.com/time-series/time-series-analysis-python/
+
+https://www.machinelearningplus.com/time-series/time-series-analysis-python/
+
+https://www.sanfoundry.com/1000-data-science-questions-answers/
+
+https://www.kdnuggets.com/2017/04/simple-understand-gradient-descent-algorithm.html
+
+https://www.analyticsvidhya.com/blog/2017/05/neural-network-from-scratch-in-python-and-r/
+
+
+https://towardsdatascience.com/probability-concepts-explained-introduction-a7c0316de465  -- > probablity concept
+
+Marginal 
+joint
+--and p(AnB) = P(A) * P(B) ( when events are independent)
+--or P(AUB) = P(A) +P(B) - P(AnB) ( when events are depedent)
+if mutal exclusive P(AnB) =0 
+
+conditional probablity : P(A|B) = P(AnB)/ P(B) 

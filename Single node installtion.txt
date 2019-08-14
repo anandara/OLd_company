@@ -1,0 +1,245 @@
+try with whoami comamnd whether you have login with rootuser or normaluser
+
+Pre -request :
+-----------------
+
+so need to login as root 
+1.Sudo su
+
+
+2. create the Group account
+
+sudo addgroup hadoop
+
+3.create the dedicated  hadoopsystem user called --> Hduser
+
+  sudo adduser hduser -->set your password , it will use use for further 
+
+4.sudo adduser hduser hadoop --> associate the group to user
+
+5.Sudo visudo  --> provide full access (root previleage) to hduser
+
+add a below line 
+
+# allow members of goup sudo to execute any command
+hduser ALL=(ALL) ALL
+
+press ctrl +X  -->press Yes --> hit enter
+
+6. logout user from root
+
+7. login through as hduser in the ubuntu ( right side top cornor will show list of users )
+
+8. configure the SSH ( so that node can communicate each other name node and datanode) 
+
+sudo apt-get install openssh-server   --> ask for password  for hduser ( it will install SSH server )
+
+9.  ssh-keygen -->  hit enter (need to generate the Key )
+(secret key) 
+
+10.cd~ ( home)
+
+11. cd .ssh --> generated key avilable in the directory  key file name -->id_rsa.pub
+
+12. cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+( generated key add into authorizedkeys)
+
+13. chmod 700 ~/.ssh/authorized_keys ( provide rwx access to hduser)
+
+14. sudo /etc/init.d/ssh restart   (start the SSH)
+
+15. ssh localhost ( connect SSH)
+
+16.sudo vim /etc/sysctl.conf  ( you can edit file and disable the ipv6 )
+#disable ipv6
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6=1
+
+17. after system reboot please run below command
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6  ( should be 1 )  
+
+download Hadoop
+--------------------
+
+
+1. go to browse --> google --> hadoop download --> click on  apache ( download hadoop 2.7.2 - bin file )
+
+2. copy the .zip file and place it in desktop
+
+3. cd desktop 
+
+4. sudo mv ~/desktop/hadoop-2.7.2.tar.gz /usr/local/    ( move desktop file into /usr/local/)
+
+5.cd /usr/local
+
+6.sudo tar -xvf  hadoop-2.7.2.tar.gz ( untar file )
+
+7. sudo rm hadoop-2.7.2.tar.gz (remove the hadoop setup file )
+
+8. sudo ln -s hadoop-2.7.2 hadoop  ( shortname or nick name for hadoop-2.7.2)
+
+9. sudo chown -R hduser:hadoop hadoop-2.7.2 ( change owner of hadoop-2.7.2 folder from root to hduser)
+
+10. Sudo chmod 777 hadoop-2.7.2 ( to give full access to the folder)
+
+11. add following to /usr/local/hadoop/etc/hadoop/hadoop-env.sh 
+
+open the editor by using below command
+
+sudo vim  /usr/local/hadoop/etc/hadoop/hadoop-env.sh 
+
+go to down completed end of file and press i to edit  and give  below 
+
+export HADOOP_OPTS=DJava.net.preferIPV4Stack=true
+export HADOOP_HOME_WARN_SUPPRESS="TRUE"
+export JAVA_HOME=/usr/local/java/jdk1.8.0_91
+-->(Make sure pointing current version of jave )
+press esc :WQ
+
+(please note : in Hadoop 2.6 the location is /usr/local/hadoop/conf/hadoop-env.sh but in 2.7 there is no conf folder ) 
+
+12. update ./base.rc 
+
+vim ~/base.rc
+
+press i  and paste below command
+
+#set hadoop related enviornment variable 
+export HADOOP_HOME=/usr/local/hadoop
+export HADOOP_PREFIX=/usr/local/hadoop
+export HADOOP_MAPRED_HOME=${HADOOP_HOME}
+export HADOOP_COMMON_HOME=${HADOOP_HOME}
+export HADOOP_HDFS_HOME=${HADOOP_HOME}
+export HADOOP_YARN_HOME=${HADOOP_HOME}
+export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
+
+#native path
+export HADOOP_COMMON_LIB_NATIVE_DIR={HADOOP_PREFIX}/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_PREFIX/ilb
+#set JAVA_HOME ( we will also configure JAVA_HOME directy for hadoop later on)
+export JAVA_HOME=/usr/local/java/jdk1.8.0_91
+# some convinent aliase and funcation for running hadoop -realted command
+PATH=$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$PATH
+
+press esc :WQ
+
+13. create tempory directory and change the owner from root  to hduser and provide the full permission
+sudo  mkdir -p /app/hadoop/tmp
+sudo chown -R hduser:hadoop /app/hadoop/tmp
+sudo chmod -R 777 /app/hadoop/tmp
+
+14.update Yarn-site.xml 
+vim /usr/local/hadoop/etc/hadoop/yarn-site.xml
+
+<! --site specific YArn configuraion properties -->
+<property> 
+	<name>yarn.nodemanager.aux.service</name>
+	<value>mapreduce_shuffle<\value>
+</property>
+<property>
+<name>yarn.nodemanager.aux.service.mapreduce.shuffle.class<\name>
+<value>org.apache.hadoop.mapred.ShuffleHandler</value>
+</property>
+
+press esc :WQ
+
+15.update core-site.xml
+vim /usr/local/hadoop/etc/hadoop/core-site.xml
+
+under configuration tag
+<property>
+	<name>hadoop.tmp.dir</name>
+	<value>/app/hadoop/tmp</value>
+	<description> A base for other tempoary directories </description>
+</property>
+<property>
+	<name>fs.default.name</name>
+	<value>hdfs://localhost:9000</value>
+	<description> The name of the default filesystem </description>
+</property>
+
+press esc :WQ
+
+16. Create mapred-site.xml 
+
+cp /usr/local/hadoop/etc/hadoop/mapred-site.xml.template /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+17.edit mapred-site.xml
+
+vim /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+<property>
+	<name>mapreduce.framework.name</name>
+	<value>yarn</value>
+</property>
+
+press esc :WQ
+
+18.create directory for partial work
+
+sudo mkdir -p /usr/local/hadoop/yarn_data/hdfs/namenode
+sudo mkdir -p /usr/local/hadoop/yarn_data/hdfs/datanode
+
+sudo chmod 777 /usr/local/hadoop/yarn_data/hdfs/namenode
+sudo chmod 777 /usr/local/hadoop/yarn_data/hdfs/datanode
+
+sudo chown -R hduser:hadoop  /usr/local/hadoop/yarn_data/hdfs/namenode
+sudo chown -R hduser:hadoop  /usr/local/hadoop/yarn_data/hdfs/datanode
+
+19. update hdfs-site.xml
+
+vim /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+
+<property>
+	<name>dfs.replication</name>
+	<value>1</value>
+</property>
+<property>
+	<name>dfs.namenode.name.dir</name>
+	<value>file:/usr/local/hadoop/yarn_data/hdfs/namenode</value>
+</property>
+<property>
+	<name>dfs.datanode.name.dir</name>
+	<value>file:/usr/local/hadoop/yarn_data/hdfs/datanode</value>
+</property>
+
+press esc :WQ
+
+20. formate namenode 
+
+open new terminal -->type below hadoop command
+
+hadoop namenode -format 
+
+21.start single node cluster
+
+start-dfh.sh
+start-yarn.sh
+
+22.validate all the service started 
+
+Jps
+
+23. check if home folder is created or not in hdfs
+
+hadoop fs -ls
+
+you may get below error ls :'.': no such a file or directory means home directory doesnt create successfully
+
+24.hadoop dfs -mkdir -p /user/hduser
+
+25.  hadoop is accssible through browser
+
+NameNode 			: http://localhost:50070
+resourcemanager 		: http://localhost:8088
+Mapreducejobhistory server 	: http://localhost:19888
+
+
+
+ 
+
+
+
+
+
